@@ -8,12 +8,9 @@ def chunk_pages(pages: list[dict]) -> list[dict]:
         page_num = page["page"]
         if not text:
             continue
-        if len(text) <= CHUNK_SIZE:
-            chunks.append({"text": text, "page": page_num})
-        else:
-            start = 0
-            while start < len(text):
-                end = min(start + CHUNK_SIZE, len(text))
-                chunks.append({"text": text[start:end], "page": page_num})
-                start += CHUNK_SIZE - CHUNK_OVERLAP
+        start = 0
+        while start < len(text):
+            end = min(start + CHUNK_SIZE, len(text))
+            chunks.append({"text": text[start:end], "page": page_num})
+            start += CHUNK_SIZE - CHUNK_OVERLAP
     return chunks

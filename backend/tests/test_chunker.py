@@ -36,3 +36,10 @@ def test_overlap_keeps_chunks_within_page():
     chunks = chunk_pages(pages)
     assert all(c["page"] == 5 for c in chunks)
     assert all(len(c["text"]) <= 2000 for c in chunks)
+
+def test_boundary_text_chunk_size_not_exceeded():
+    # Text of exactly CHUNK_SIZE + 1 chars must not produce an oversized chunk
+    boundary_text = "a" * 2001
+    pages = [{"page": 1, "text": boundary_text}]
+    chunks = chunk_pages(pages)
+    assert all(len(c["text"]) <= 2000 for c in chunks)
