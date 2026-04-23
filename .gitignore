@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.env
+venv/
+.venv/
+*.egg-info/
+.pytest_cache/
+.superpowers/
+extension/lib/pdf.js
+extension/lib/pdf.worker.js
+extension/lib/supabase.js
