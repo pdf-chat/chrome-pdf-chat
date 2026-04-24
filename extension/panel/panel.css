@@ -1,0 +1,126 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+#pdf-chat-panel {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 340px;
+  background: #1e1e2e;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  font-family: system-ui, sans-serif;
+  font-size: 14px;
+  color: #cdd6f4;
+  z-index: 2147483647;
+  display: flex;
+  flex-direction: column;
+}
+
+#pdf-chat-panel.collapsed #pdf-chat-body { display: none; }
+
+#pdf-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #181825;
+  border-radius: 12px 12px 0 0;
+  cursor: move;
+  user-select: none;
+  border-bottom: 1px solid #313244;
+}
+
+#pdf-chat-panel.collapsed #pdf-chat-header {
+  border-radius: 12px;
+}
+
+#pdf-chat-title { font-weight: 600; color: #cba6f7; font-size: 13px; }
+
+#pdf-chat-toggle {
+  background: none; border: none; color: #a6adc8;
+  cursor: pointer; font-size: 18px; line-height: 1; padding: 0 2px;
+}
+#pdf-chat-toggle:hover { color: #cdd6f4; }
+
+#pdf-chat-body { display: flex; flex-direction: column; }
+
+#pdf-chat-status {
+  padding: 6px 16px;
+  font-size: 11px;
+  color: #a6adc8;
+  background: #181825;
+  border-bottom: 1px solid #313244;
+}
+#pdf-chat-status.error { color: #f38ba8; }
+#pdf-chat-status.ready { color: #a6e3a1; }
+
+#pdf-chat-messages {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 180px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.message {
+  padding: 8px 12px;
+  border-radius: 8px;
+  line-height: 1.5;
+  word-wrap: break-word;
+  font-size: 13px;
+}
+.message.user { background: #313244; align-self: flex-end; max-width: 90%; }
+.message.assistant { background: #181825; border: 1px solid #313244; align-self: flex-start; max-width: 95%; }
+.message.loading { color: #585b70; font-style: italic; }
+
+.page-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+
+.page-badge {
+  background: #1e1e2e;
+  border: 1px solid #cba6f7;
+  color: #cba6f7;
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.page-badge:hover { background: #313244; }
+
+#pdf-chat-input-row {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid #313244;
+  align-items: flex-end;
+}
+
+#pdf-chat-input {
+  flex: 1;
+  background: #313244;
+  border: 1px solid #45475a;
+  border-radius: 8px;
+  color: #cdd6f4;
+  padding: 7px 10px;
+  font-size: 13px;
+  resize: none;
+  font-family: inherit;
+  line-height: 1.4;
+}
+#pdf-chat-input:focus { outline: none; border-color: #cba6f7; }
+#pdf-chat-input:disabled { opacity: 0.4; }
+
+#pdf-chat-send {
+  background: #cba6f7;
+  color: #1e1e2e;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+}
+#pdf-chat-send:hover:not(:disabled) { background: #b4befe; }
+#pdf-chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
