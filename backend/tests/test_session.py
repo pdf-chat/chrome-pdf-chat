@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import session as session_store
 
 def setup_function():
@@ -25,7 +25,7 @@ def test_get_session_not_found_raises_key_error():
 def test_cleanup_removes_expired_sessions():
     chunks = [{"text": "hello", "page": 1}]
     sid = session_store.create_session(chunks, "user-1")
-    session_store._sessions[sid].created_at = datetime.utcnow() - timedelta(hours=3)
+    session_store._sessions[sid].created_at = datetime.now(timezone.utc) - timedelta(hours=3)
     session_store.cleanup_expired()
     with pytest.raises(KeyError):
         session_store.get_session(sid, "user-1")

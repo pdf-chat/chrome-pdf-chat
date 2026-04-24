@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict
 import uuid
 
@@ -9,7 +9,7 @@ SESSION_TTL_HOURS = 2
 class SessionData:
     chunks: list[dict]
     user_id: str
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 _sessions: Dict[str, SessionData] = {}
 
@@ -27,7 +27,7 @@ def get_session(session_id: str, user_id: str) -> SessionData:
     return session
 
 def cleanup_expired():
-    cutoff = datetime.utcnow() - timedelta(hours=SESSION_TTL_HOURS)
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=SESSION_TTL_HOURS)
     expired = [sid for sid, s in _sessions.items() if s.created_at < cutoff]
     for sid in expired:
         del _sessions[sid]
