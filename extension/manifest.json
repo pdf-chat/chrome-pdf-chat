@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "PDF Chat",
+  "version": "1.0.0",
+  "description": "Ask questions about any PDF open in your browser",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["http://*/*", "https://*/*", "file:///*"],
+  "background": {
+    "service_worker": "service_worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["lib/pdf.js", "content_script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_page": "options/options.html",
+  "web_accessible_resources": [
+    {
+      "resources": ["lib/pdf.worker.js", "panel/panel.html", "panel/panel.css"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
