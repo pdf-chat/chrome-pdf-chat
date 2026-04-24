@@ -1,6 +1,6 @@
 import os
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi.testclient import TestClient
 from jose import jwt
 
@@ -12,7 +12,7 @@ from auth import get_current_user
 SECRET = "test-secret-key-must-be-32-chars!!"
 
 def make_token(user_id: str, expired: bool = False):
-    exp = datetime.utcnow() + (timedelta(seconds=-1) if expired else timedelta(hours=1))
+    exp = datetime.now(timezone.utc) + (timedelta(seconds=-1) if expired else timedelta(hours=1))
     return jwt.encode({"sub": user_id, "exp": exp}, SECRET, algorithm="HS256")
 
 def test_valid_token_extracts_user_id():
