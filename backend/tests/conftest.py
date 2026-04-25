@@ -1,7 +1,7 @@
 import os
 import pytest
 
-os.environ.setdefault("SUPABASE_JWT_SECRET", "test-secret-key-must-be-32-chars!!")
+os.environ.setdefault("SUPABASE_URL", "https://test-project.supabase.co")
 
 from fastapi.testclient import TestClient
 from main import app
