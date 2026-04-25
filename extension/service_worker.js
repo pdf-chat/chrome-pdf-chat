@@ -1,10 +1,25 @@
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'FETCH_PDF') {
+    fetchPdfAsBase64(message.url)
+      .then(sendResponse)
+      .catch((err) => sendResponse({ __error: err.message }));
+    return true;
+  }
   if (message.type !== 'API_REQUEST') return;
   handleApiRequest(message)
     .then(sendResponse)
     .catch((err) => sendResponse({ __error: err.message }));
   return true; // keep channel open for async response
 });
+
+async function fetchPdfAsBase64(url) {
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const bytes = new Uint8Array(await resp.arrayBuffer());
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return { base64: btoa(binary) };
+}
 
 async function handleApiRequest({ endpoint, method = 'POST', body }) {
   const storage = await chrome.storage.local.get([

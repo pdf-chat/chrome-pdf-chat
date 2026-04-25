@@ -52,12 +52,19 @@
 })();
 
 async function extractPdfText(url) {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const buffer = await response.arrayBuffer();
+  const { base64 } = await new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({ type: 'FETCH_PDF', url }, (response) => {
+      if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
+      if (response && response.__error) return reject(new Error(response.__error));
+      resolve(response);
+    });
+  });
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
 
   pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('lib/pdf.worker.js');
-  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+  const pdf = await pdfjsLib.getDocument({ data: bytes.buffer }).promise;
 
   const pages = [];
   for (let i = 1; i <= pdf.numPages; i++) {
