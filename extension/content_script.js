@@ -163,9 +163,13 @@ async function injectPanel() {
   }
 
   sendBtn.addEventListener('click', doSend);
+  // Stop PDF viewer from intercepting keyboard events meant for the input
   inputEl.addEventListener('keydown', (e) => {
+    e.stopPropagation();
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSend(); }
   });
+  inputEl.addEventListener('keyup', (e) => e.stopPropagation());
+  inputEl.addEventListener('keypress', (e) => e.stopPropagation());
 
   function appendMessage(role, text, cls, pages) {
     const msg = document.createElement('div');
