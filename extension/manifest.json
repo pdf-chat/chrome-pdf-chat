@@ -18,7 +18,7 @@
   "options_page": "options/options.html",
   "web_accessible_resources": [
     {
-      "resources": ["lib/pdf.worker.js", "panel/panel.html", "panel/panel.css"],
+      "resources": ["lib/pdf.worker.js", "panel/panel.html", "panel/panel.css", "panel/panel.js"],
       "matches": ["<all_urls>"]
     }
   ]

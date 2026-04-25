@@ -3,52 +3,84 @@
     document.contentType === 'application/pdf' ||
     /\.pdf(\?|#|$)/i.test(location.href);
   if (!isPdf) return;
-  if (document.getElementById('__pdf-chat-host')) return;
+  if (document.getElementById('__pdf-chat-iframe')) return;
 
-  const panel = await injectPanel();
+  // Inject iframe — runs as a chrome-extension:// page, fully isolated from the PDF viewer
+  const iframe = document.createElement('iframe');
+  iframe.id = '__pdf-chat-iframe';
+  iframe.src = chrome.runtime.getURL('panel/panel.html');
+  Object.assign(iframe.style, {
+    position: 'fixed',
+    bottom: '24px',
+    right: '24px',
+    width: '340px',
+    height: '480px',
+    border: 'none',
+    zIndex: '2147483647',
+    borderRadius: '12px',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+    colorScheme: 'normal',
+  });
+  document.body.appendChild(iframe);
 
-  panel.setStatus('Extracting PDF text...');
+  // Drag state
+  let dragging = false, dragStartX, dragStartY, iframeStartRight, iframeStartBottom;
+
+  window.addEventListener('message', (e) => {
+    if (e.source !== iframe.contentWindow) return;
+    const d = e.data;
+    if (d.type === 'TOGGLE_COLLAPSE') {
+      iframe.style.height = d.collapsed ? '44px' : '480px';
+    }
+    if (d.type === 'DRAG_START') {
+      dragging = true;
+      const rect = iframe.getBoundingClientRect();
+      dragStartX = rect.left + d.offsetX;
+      dragStartY = rect.top + d.offsetY;
+      iframeStartRight = window.innerWidth - rect.right;
+      iframeStartBottom = window.innerHeight - rect.bottom;
+    }
+    if (d.type === 'SCROLL_TO_PAGE') scrollToPage(d.page);
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    iframe.style.right = Math.max(0, iframeStartRight - (e.clientX - dragStartX)) + 'px';
+    iframe.style.bottom = Math.max(0, iframeStartBottom - (e.clientY - dragStartY)) + 'px';
+  });
+  document.addEventListener('mouseup', () => { dragging = false; });
+
+  function post(msg) {
+    iframe.contentWindow.postMessage(msg, chrome.runtime.getURL('/'));
+  }
+
+  await new Promise((resolve) => iframe.addEventListener('load', resolve, { once: true }));
+
+  post({ type: 'SET_STATUS', msg: 'Extracting PDF text...' });
   let pages;
   try {
     pages = await extractPdfText(location.href);
   } catch (err) {
-    panel.setError('Could not read PDF: ' + err.message);
+    post({ type: 'SET_ERROR', msg: 'Could not read PDF: ' + err.message });
     return;
   }
 
   if (!pages.length) {
-    panel.setError('This PDF couldn\'t be read — it may be encrypted or image-only.');
+    post({ type: 'SET_ERROR', msg: "This PDF couldn't be read — it may be encrypted or image-only." });
     return;
   }
 
-  panel.setStatus('Uploading to server...');
+  post({ type: 'SET_STATUS', msg: 'Uploading to server...' });
   let sessionId;
   try {
     const result = await apiRequest('/session/upload', { pages });
     sessionId = result.session_id;
   } catch (err) {
-    panel.setError('Upload failed: ' + err.message, true);
+    post({ type: 'SET_ERROR', msg: 'Upload failed: ' + err.message });
     return;
   }
 
-  panel.setReady(sessionId);
-
-  async function sendQuestion(question, sessionId) {
-    const { model } = await chrome.storage.local.get('model');
-    return apiRequest('/session/query', {
-      session_id: sessionId,
-      question,
-      model: model || 'gpt-4o',
-    });
-  }
-
-  panel.onSend(async (question) => {
-    try {
-      return await sendQuestion(question, sessionId);
-    } catch (err) {
-      throw new Error(err.message || 'Request failed');
-    }
-  });
+  post({ type: 'SET_READY', sessionId });
 })();
 
 async function extractPdfText(url) {
@@ -87,129 +119,6 @@ function apiRequest(endpoint, body) {
       }
     );
   });
-}
-
-async function injectPanel() {
-  const host = document.createElement('div');
-  host.id = '__pdf-chat-host';
-  document.body.appendChild(host);
-  const shadow = host.attachShadow({ mode: 'open' });
-
-  const [htmlText, cssText] = await Promise.all([
-    fetch(chrome.runtime.getURL('panel/panel.html')).then((r) => r.text()),
-    fetch(chrome.runtime.getURL('panel/panel.css')).then((r) => r.text()),
-  ]);
-
-  const style = document.createElement('style');
-  style.textContent = cssText;
-  shadow.appendChild(style);
-
-  const wrapper = document.createElement('div');
-  wrapper.innerHTML = htmlText;
-  shadow.appendChild(wrapper);
-
-  const panelEl = shadow.getElementById('pdf-chat-panel');
-  const statusEl = shadow.getElementById('pdf-chat-status');
-  const messagesEl = shadow.getElementById('pdf-chat-messages');
-  const inputEl = shadow.getElementById('pdf-chat-input');
-  const sendBtn = shadow.getElementById('pdf-chat-send');
-  const toggleBtn = shadow.getElementById('pdf-chat-toggle');
-
-  let sendHandler = null;
-
-  // Collapse/expand
-  toggleBtn.addEventListener('click', () => {
-    const collapsed = panelEl.classList.toggle('collapsed');
-    toggleBtn.textContent = collapsed ? '+' : '−';
-  });
-
-  // Draggable
-  let dragging = false, sx, sy, sr, sb;
-  shadow.getElementById('pdf-chat-header').addEventListener('mousedown', (e) => {
-    dragging = true;
-    sx = e.clientX; sy = e.clientY;
-    const r = panelEl.getBoundingClientRect();
-    sr = window.innerWidth - r.right;
-    sb = window.innerHeight - r.bottom;
-  });
-  document.addEventListener('mousemove', (e) => {
-    if (!dragging) return;
-    panelEl.style.right = Math.max(0, sr - (e.clientX - sx)) + 'px';
-    panelEl.style.bottom = Math.max(0, sb - (e.clientY - sy)) + 'px';
-  });
-  document.addEventListener('mouseup', () => { dragging = false; });
-
-  async function doSend() {
-    if (!sendHandler) return;
-    const question = inputEl.value.trim();
-    if (!question) return;
-    inputEl.value = '';
-    appendMessage('user', question);
-    sendBtn.disabled = true;
-    inputEl.disabled = true;
-    const loadingEl = appendMessage('assistant', 'Thinking...', 'loading');
-    try {
-      const result = await sendHandler(question);
-      loadingEl.remove();
-      appendMessage('assistant', result.answer, null, result.pages);
-    } catch (err) {
-      loadingEl.remove();
-      appendMessage('assistant', '⚠ ' + err.message);
-    } finally {
-      sendBtn.disabled = false;
-      inputEl.disabled = false;
-      inputEl.focus();
-    }
-  }
-
-  sendBtn.addEventListener('click', doSend);
-  // Stop PDF viewer from intercepting keyboard events meant for the input
-  inputEl.addEventListener('keydown', (e) => {
-    e.stopPropagation();
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSend(); }
-  });
-  inputEl.addEventListener('keyup', (e) => e.stopPropagation());
-  inputEl.addEventListener('keypress', (e) => e.stopPropagation());
-
-  function appendMessage(role, text, cls, pages) {
-    const msg = document.createElement('div');
-    msg.className = 'message ' + role + (cls ? ' ' + cls : '');
-    msg.textContent = text;
-    if (pages && pages.length) {
-      const badges = document.createElement('div');
-      badges.className = 'page-badges';
-      pages.forEach((p) => {
-        const badge = document.createElement('span');
-        badge.className = 'page-badge';
-        badge.textContent = 'p.' + p;
-        badge.addEventListener('click', () => scrollToPage(p));
-        badges.appendChild(badge);
-      });
-      msg.appendChild(badges);
-    }
-    messagesEl.appendChild(msg);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-    return msg;
-  }
-
-  return {
-    setStatus(msg, cls) {
-      statusEl.textContent = msg;
-      statusEl.className = cls || '';
-    },
-    setError(msg, showRetry) {
-      statusEl.textContent = '⚠ ' + msg;
-      statusEl.className = 'error';
-    },
-    setReady(sid) {
-      statusEl.textContent = '✓ Ready — ask a question';
-      statusEl.className = 'ready';
-      inputEl.disabled = false;
-      sendBtn.disabled = false;
-      inputEl.focus();
-    },
-    onSend(fn) { sendHandler = fn; },
-  };
 }
 
 function scrollToPage(pageNum) {
