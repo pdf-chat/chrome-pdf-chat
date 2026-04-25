@@ -25,7 +25,10 @@ def test_query_returns_answer_and_pages(client):
     session_id = upload_resp.json()["session_id"]
 
     with patch("routes.session_routes.llm.ask") as mock_ask:
-        mock_ask.return_value = {"answer": "Revenue grew 23%.", "pages": [4]}
+        mock_ask.return_value = {
+            "answer": "Revenue grew 23%.",
+            "citations": [{"page": 4, "quote": "Revenue grew 23%"}],
+        }
         resp = client.post("/session/query", json={
             "session_id": session_id,
             "question": "What was revenue growth?",
@@ -35,7 +38,7 @@ def test_query_returns_answer_and_pages(client):
     assert resp.status_code == 200
     data = resp.json()
     assert data["answer"] == "Revenue grew 23%."
-    assert data["pages"] == [4]
+    assert data["citations"] == [{"page": 4, "quote": "Revenue grew 23%"}]
 
 def test_query_unknown_session_returns_404(client):
     resp = client.post("/session/query", json={

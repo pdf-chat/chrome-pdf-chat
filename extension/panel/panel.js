@@ -66,7 +66,7 @@ async function doSend() {
       );
     });
     loadingEl.remove();
-    appendMessage('assistant', result.answer, null, result.pages);
+    appendMessage('assistant', result.answer, null, result.citations);
   } catch (err) {
     loadingEl.remove();
     appendMessage('assistant', '⚠ ' + err.message);
@@ -82,19 +82,20 @@ inputEl.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSend(); }
 });
 
-function appendMessage(role, text, cls, pages) {
+function appendMessage(role, text, cls, citations) {
   const msg = document.createElement('div');
   msg.className = 'message ' + role + (cls ? ' ' + cls : '');
   msg.textContent = text;
-  if (pages && pages.length) {
+  if (citations && citations.length) {
     const badges = document.createElement('div');
     badges.className = 'page-badges';
-    pages.forEach((p) => {
+    citations.forEach((c) => {
       const badge = document.createElement('span');
       badge.className = 'page-badge';
-      badge.textContent = 'p.' + p;
+      badge.textContent = 'p.' + c.page;
+      badge.title = c.quote || '';
       badge.addEventListener('click', () => {
-        window.parent.postMessage({ type: 'SCROLL_TO_PAGE', page: p }, '*');
+        window.parent.postMessage({ type: 'SCROLL_TO_PAGE', page: c.page, quote: c.quote }, '*');
       });
       badges.appendChild(badge);
     });

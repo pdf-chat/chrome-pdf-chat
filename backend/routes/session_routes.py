@@ -19,9 +19,13 @@ class QueryRequest(BaseModel):
     question: str
     model: str
 
+class Citation(BaseModel):
+    page: int
+    quote: str
+
 class QueryResponse(BaseModel):
     answer: str
-    pages: list[int]
+    citations: list[Citation]
 
 @router.post("/upload", response_model=UploadResponse)
 async def upload(req: UploadRequest, user_id: str = Depends(get_current_user)):
@@ -40,10 +44,9 @@ async def query(req: QueryRequest, user_id: str = Depends(get_current_user)):
     except PermissionError:
         raise HTTPException(status_code=403, detail="Access denied")
     top_chunks = retriever.search(sess.chunks, req.question)
-    # Fall back to all chunks when BM25 scores are degenerate (e.g. single-doc corpus)
     if not top_chunks:
         top_chunks = sess.chunks
     if not top_chunks:
-        return QueryResponse(answer="I couldn't find that in this document.", pages=[])
+        return QueryResponse(answer="I couldn't find that in this document.", citations=[])
     result = llm.ask(req.question, top_chunks, req.model)
     return QueryResponse(**result)
