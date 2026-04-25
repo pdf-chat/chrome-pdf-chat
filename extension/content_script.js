@@ -40,7 +40,6 @@
       iframeStartRight = window.innerWidth - rect.right;
       iframeStartBottom = window.innerHeight - rect.bottom;
     }
-    if (d.type === 'SCROLL_TO_PAGE') scrollToPage(d.page, d.quote);
   });
 
   document.addEventListener('mousemove', (e) => {
@@ -121,22 +120,3 @@ function apiRequest(endpoint, body) {
   });
 }
 
-function scrollToPage(pageNum, quote) {
-  // Mozilla PDF.js viewer (e.g. Firefox) — direct API
-  try {
-    if (window.PDFViewerApplication) {
-      window.PDFViewerApplication.page = pageNum;
-      if (quote && window.PDFViewerApplication.findBar) {
-        window.PDFViewerApplication.findBar.open();
-        const input = window.PDFViewerApplication.findBar.findField;
-        if (input) { input.value = quote; input.dispatchEvent(new Event('input')); }
-      }
-      return;
-    }
-  } catch (_) {}
-  // Chrome's built-in PDF viewer — use URL Open Parameters
-  const params = [`page=${pageNum}`];
-  if (quote) params.push(`search=${encodeURIComponent(quote)}`);
-  const base = location.href.split('#')[0];
-  location.href = `${base}#${params.join('&')}`;
-}

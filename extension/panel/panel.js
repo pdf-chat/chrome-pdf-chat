@@ -85,7 +85,9 @@ inputEl.addEventListener('keydown', (e) => {
 function appendMessage(role, text, cls, citations) {
   const msg = document.createElement('div');
   msg.className = 'message ' + role + (cls ? ' ' + cls : '');
-  msg.textContent = text;
+  const textEl = document.createElement('div');
+  textEl.textContent = text;
+  msg.appendChild(textEl);
   if (citations && citations.length) {
     const badges = document.createElement('div');
     badges.className = 'page-badges';
@@ -93,13 +95,17 @@ function appendMessage(role, text, cls, citations) {
       const badge = document.createElement('span');
       badge.className = 'page-badge';
       badge.textContent = 'p.' + c.page;
-      badge.title = c.quote || '';
+      const quoteEl = document.createElement('div');
+      quoteEl.className = 'citation-quote';
+      quoteEl.textContent = c.quote || '(no quote provided)';
       badge.addEventListener('click', () => {
-        window.parent.postMessage({ type: 'SCROLL_TO_PAGE', page: c.page, quote: c.quote }, '*');
+        const showing = badge.classList.toggle('active');
+        quoteEl.classList.toggle('open', showing);
       });
       badges.appendChild(badge);
+      msg.appendChild(quoteEl);
     });
-    msg.appendChild(badges);
+    msg.insertBefore(badges, msg.children[1] || null);
   }
   messagesEl.appendChild(msg);
   messagesEl.scrollTop = messagesEl.scrollHeight;
