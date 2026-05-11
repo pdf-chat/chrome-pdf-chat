@@ -1,9 +1,9 @@
 // TODO: Replace with your production backend URL before publishing.
-const BACKEND_URL = 'https://pdf-chat-backend-production.up.railway.app/';
+const BACKEND_URL = 'https://pdf-chat-backend-production.up.railway.app';
 // TODO: Replace with your Supabase publishable key (same value as in options.js).
 // Find it in: Supabase dashboard → Settings → API → Publishable key (sb_publishable_...)
 const SUPABASE_URL = 'https://wbhintapmmtbbzedawsr.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = 'YOUR_SUPABASE_PUBLISHABLE_KEY';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_xhQsh8XWuPbrkjSYTcP-og_JT0zhwMp';
 
 // Track which tabs have loaded a PDF response, so the content script can find PDFs
 // that aren't on the current URL (e.g. IEEE's stamp.jsp serves HTML and loads the PDF

@@ -1,7 +1,7 @@
 // TODO: Replace with your Supabase publishable key.
 // Find it in: Supabase dashboard → Settings → API → Publishable key (sb_publishable_...)
 const SUPABASE_URL = 'https://wbhintapmmtbbzedawsr.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = 'YOUR_SUPABASE_PUBLISHABLE_KEY';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_xhQsh8XWuPbrkjSYTcP-og_JT0zhwMp';
 
 const { createClient } = supabase;
 const client = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
