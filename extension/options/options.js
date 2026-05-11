@@ -1,44 +1,86 @@
+// TODO: Replace with your Supabase project's anon (public) key.
+// Find it in: Supabase dashboard → Settings → API → Project API keys → anon/public
+const SUPABASE_URL = 'https://wbhintapmmtbbzedawsr.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+const { createClient } = supabase;
+const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 const statusEl = document.getElementById('status');
+const authView = document.getElementById('auth-view');
+const signedInView = document.getElementById('signed-in-view');
+const signedInEmail = document.getElementById('signed-in-email');
+let isSignUp = false;
 
 function showStatus(msg, isError) {
   statusEl.textContent = msg;
   statusEl.className = isError ? 'err' : 'ok';
 }
 
-// Restore saved values
-chrome.storage.local.get(
-  ['supabase_url', 'supabase_anon_key', 'backend_url', 'model', 'access_token']
-).then((data) => {
-  if (data.supabase_url) document.getElementById('supabase-url').value = data.supabase_url;
-  if (data.supabase_anon_key) document.getElementById('supabase-anon-key').value = data.supabase_anon_key;
-  if (data.backend_url) document.getElementById('backend-url').value = data.backend_url;
-  if (data.model) document.getElementById('model').value = data.model;
-  if (data.access_token) showStatus('✓ Currently signed in');
+async function refreshSignedInState() {
+  const { access_token } = await chrome.storage.local.get('access_token');
+  if (access_token) {
+    // Decode email from JWT payload (no verification needed here — display only)
+    try {
+      const payload = JSON.parse(atob(access_token.split('.')[1]));
+      signedInEmail.textContent = '✓ Signed in as ' + (payload.email || payload.sub);
+    } catch {
+      signedInEmail.textContent = '✓ Signed in';
+    }
+    signedInView.style.display = '';
+    authView.style.display = 'none';
+  } else {
+    signedInView.style.display = 'none';
+    authView.style.display = '';
+  }
+}
+
+chrome.storage.local.get('model').then(({ model }) => {
+  if (model) document.getElementById('model').value = model;
 });
 
-document.getElementById('login-btn').addEventListener('click', async () => {
-  const supabaseUrl = document.getElementById('supabase-url').value.trim();
-  const anonKey = document.getElementById('supabase-anon-key').value.trim();
+refreshSignedInState();
+
+document.getElementById('tab-signin').addEventListener('click', () => {
+  isSignUp = false;
+  document.getElementById('tab-signin').classList.add('active');
+  document.getElementById('tab-signup').classList.remove('active');
+  document.getElementById('auth-btn').textContent = 'Sign In';
+  document.getElementById('password').autocomplete = 'current-password';
+});
+
+document.getElementById('tab-signup').addEventListener('click', () => {
+  isSignUp = true;
+  document.getElementById('tab-signup').classList.add('active');
+  document.getElementById('tab-signin').classList.remove('active');
+  document.getElementById('auth-btn').textContent = 'Create Account';
+  document.getElementById('password').autocomplete = 'new-password';
+});
+
+document.getElementById('auth-btn').addEventListener('click', async () => {
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
+  if (!email || !password) { showStatus('Enter email and password.', true); return; }
 
-  if (!supabaseUrl || !anonKey) {
-    showStatus('Enter Supabase URL and Anon Key first.', true);
-    return;
-  }
-  showStatus('Signing in...');
-
+  showStatus(isSignUp ? 'Creating account...' : 'Signing in...');
   try {
-    await chrome.storage.local.set({ supabase_url: supabaseUrl, supabase_anon_key: anonKey });
-    const { createClient } = supabase;
-    const client = createClient(supabaseUrl, anonKey);
-    const { data, error } = await client.auth.signInWithPassword({ email, password });
+    let data, error;
+    if (isSignUp) {
+      ({ data, error } = await client.auth.signUp({ email, password }));
+      if (!error && data.user && !data.session) {
+        showStatus('Check your email to confirm your account, then sign in.', false);
+        return;
+      }
+    } else {
+      ({ data, error } = await client.auth.signInWithPassword({ email, password }));
+    }
     if (error) throw error;
     await chrome.storage.local.set({
       access_token: data.session.access_token,
       refresh_token: data.session.refresh_token,
     });
-    showStatus('✓ Signed in as ' + data.user.email);
+    showStatus('');
+    refreshSignedInState();
   } catch (err) {
     showStatus('Error: ' + err.message, true);
   }
@@ -47,11 +89,11 @@ document.getElementById('login-btn').addEventListener('click', async () => {
 document.getElementById('logout-btn').addEventListener('click', async () => {
   await chrome.storage.local.remove(['access_token', 'refresh_token']);
   showStatus('Signed out.');
+  refreshSignedInState();
 });
 
 document.getElementById('save-btn').addEventListener('click', async () => {
   const model = document.getElementById('model').value;
-  const backendUrl = document.getElementById('backend-url').value.trim() || 'http://localhost:8000';
-  await chrome.storage.local.set({ model, backend_url: backendUrl });
-  showStatus('✓ Settings saved.');
+  await chrome.storage.local.set({ model });
+  showStatus('✓ Saved.');
 });

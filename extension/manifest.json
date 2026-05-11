@@ -3,7 +3,7 @@
   "name": "PDF Chat",
   "version": "1.0.0",
   "description": "Ask questions about any PDF open in your browser",
-  "permissions": ["storage", "activeTab"],
+  "permissions": ["storage", "activeTab", "webRequest"],
   "host_permissions": ["http://*/*", "https://*/*", "file:///*"],
   "background": {
     "service_worker": "service_worker.js"
@@ -16,10 +16,13 @@
     }
   ],
   "options_page": "options/options.html",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none';"
+  },
   "web_accessible_resources": [
     {
       "resources": ["lib/pdf.worker.js", "panel/panel.html", "panel/panel.css", "panel/panel.js"],
-      "matches": ["<all_urls>"]
+      "matches": ["http://*/*", "https://*/*", "file:///*"]
     }
   ]
 }

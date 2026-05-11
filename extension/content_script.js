@@ -1,8 +1,6 @@
 (async function () {
-  const isPdf =
-    document.contentType === 'application/pdf' ||
-    /\.pdf(\?|#|$)/i.test(location.href);
-  if (!isPdf) return;
+  const pdfUrl = await findPdfUrl();
+  if (!pdfUrl) return;
   if (document.getElementById('__pdf-chat-iframe')) return;
 
   // Inject iframe — runs as a chrome-extension:// page, fully isolated from the PDF viewer
@@ -11,43 +9,28 @@
   iframe.src = chrome.runtime.getURL('panel/panel.html');
   Object.assign(iframe.style, {
     position: 'fixed',
-    bottom: '24px',
-    right: '24px',
+    top: '0',
+    bottom: '0',
+    right: '0',
     width: '340px',
-    height: '480px',
     border: 'none',
     zIndex: '2147483647',
-    borderRadius: '12px',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+    boxShadow: '-4px 0 16px rgba(0,0,0,0.4)',
     colorScheme: 'normal',
   });
   document.body.appendChild(iframe);
-
-  // Drag state
-  let dragging = false, dragStartX, dragStartY, iframeStartRight, iframeStartBottom;
 
   window.addEventListener('message', (e) => {
     if (e.source !== iframe.contentWindow) return;
     const d = e.data;
     if (d.type === 'TOGGLE_COLLAPSE') {
-      iframe.style.height = d.collapsed ? '44px' : '480px';
+      iframe.style.top = d.collapsed ? 'auto' : '0';
+      iframe.style.height = d.collapsed ? '44px' : '';
     }
-    if (d.type === 'DRAG_START') {
-      dragging = true;
-      const rect = iframe.getBoundingClientRect();
-      dragStartX = rect.left + d.offsetX;
-      dragStartY = rect.top + d.offsetY;
-      iframeStartRight = window.innerWidth - rect.right;
-      iframeStartBottom = window.innerHeight - rect.bottom;
+    if (d.type === 'SCROLL_TO_PAGE') {
+      scrollToPage(d.page);
     }
   });
-
-  document.addEventListener('mousemove', (e) => {
-    if (!dragging) return;
-    iframe.style.right = Math.max(0, iframeStartRight - (e.clientX - dragStartX)) + 'px';
-    iframe.style.bottom = Math.max(0, iframeStartBottom - (e.clientY - dragStartY)) + 'px';
-  });
-  document.addEventListener('mouseup', () => { dragging = false; });
 
   function post(msg) {
     iframe.contentWindow.postMessage(msg, chrome.runtime.getURL('/'));
@@ -58,7 +41,7 @@
   post({ type: 'SET_STATUS', msg: 'Extracting PDF text...' });
   let pages;
   try {
-    pages = await extractPdfText(location.href);
+    pages = await extractPdfText(pdfUrl);
   } catch (err) {
     post({ type: 'SET_ERROR', msg: 'Could not read PDF: ' + err.message });
     return;
@@ -79,7 +62,7 @@
     return;
   }
 
-  post({ type: 'SET_READY', sessionId });
+  post({ type: 'SET_READY', sessionId, pages });
 })();
 
 async function extractPdfText(url) {
@@ -105,6 +88,45 @@ async function extractPdfText(url) {
     if (text) pages.push({ page: i, text });
   }
   return pages;
+}
+
+function localPdfUrl() {
+  if (document.contentType === 'application/pdf') return location.href;
+  if (/\.pdf(\?|#|$)/i.test(location.href)) return location.href;
+  // Chrome's built-in PDF viewer always injects an <embed> with one of these MIME types
+  if (document.querySelector(
+    'embed[type="application/pdf"], embed[type="application/x-google-chrome-pdf"]'
+  )) return location.href;
+  return null;
+}
+
+function askServiceWorkerForPdf() {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ type: 'GET_PDF_URL' }, (response) => {
+      // Ignore lastError — service worker may not be ready yet
+      void chrome.runtime.lastError;
+      resolve(response && response.url ? response.url : null);
+    });
+  });
+}
+
+// Detect PDF via local DOM signals OR by asking the service worker which tracks
+// network responses with Content-Type: application/pdf. The latter catches PDFs
+// loaded inside iframes or via JS (IEEE stamp.jsp, similar publisher endpoints).
+async function findPdfUrl() {
+  for (let i = 0; i < 16; i++) {
+    const local = localPdfUrl();
+    if (local) return local;
+    const fromSw = await askServiceWorkerForPdf();
+    if (fromSw) return fromSw;
+    await new Promise((r) => setTimeout(r, 400));
+  }
+  return null;
+}
+
+function scrollToPage(pageNum) {
+  // Timestamp suffix forces a fresh hashchange even when clicking the same page badge twice
+  location.hash = 'page=' + pageNum + '&_=' + Date.now();
 }
 
 function apiRequest(endpoint, body) {

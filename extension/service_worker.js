@@ -1,4 +1,42 @@
+// TODO: Replace with your production backend URL before publishing.
+const BACKEND_URL = 'https://your-backend.example.com';
+// TODO: Replace with your Supabase anon key (same value as in options.js).
+const SUPABASE_URL = 'https://wbhintapmmtbbzedawsr.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+// Track which tabs have loaded a PDF response, so the content script can find PDFs
+// that aren't on the current URL (e.g. IEEE's stamp.jsp serves HTML and loads the PDF
+// in a nested iframe — only the network layer can reliably see it).
+const tabPdfs = new Map(); // tabId -> { url, timestamp }
+
+chrome.webRequest.onResponseStarted.addListener(
+  (details) => {
+    if (details.tabId < 0) return;
+    const ct = (details.responseHeaders || []).find(
+      (h) => h.name.toLowerCase() === 'content-type'
+    );
+    if (ct && ct.value && /application\/pdf/i.test(ct.value)) {
+      tabPdfs.set(details.tabId, { url: details.url, timestamp: Date.now() });
+    }
+  },
+  { urls: ['<all_urls>'] },
+  ['responseHeaders']
+);
+
+chrome.tabs.onRemoved.addListener((tabId) => tabPdfs.delete(tabId));
+chrome.tabs.onUpdated.addListener((tabId, info) => {
+  // Drop stale entries when tab navigates somewhere new; webRequest will repopulate
+  // if the new page also serves a PDF
+  if (info.url) tabPdfs.delete(tabId);
+});
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'GET_PDF_URL') {
+    const tabId = sender.tab && sender.tab.id;
+    const entry = tabId !== undefined ? tabPdfs.get(tabId) : null;
+    sendResponse(entry ? { url: entry.url } : null);
+    return; // synchronous
+  }
   if (message.type === 'FETCH_PDF') {
     fetchPdfAsBase64(message.url)
       .then(sendResponse)
@@ -13,7 +51,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 async function fetchPdfAsBase64(url) {
-  const resp = await fetch(url);
+  // credentials:'include' sends the user's cookies for the target domain — required for
+  // PDFs behind cookie-based auth (EZproxy, Shibboleth, paywalls). Works because the
+  // extension has <all_urls> host permission.
+  const resp = await fetch(url, { credentials: 'include' });
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
   const bytes = new Uint8Array(await resp.arrayBuffer());
   let binary = '';
@@ -22,19 +63,16 @@ async function fetchPdfAsBase64(url) {
 }
 
 async function handleApiRequest({ endpoint, method = 'POST', body }) {
-  const storage = await chrome.storage.local.get([
-    'access_token', 'refresh_token', 'backend_url', 'supabase_url',
-  ]);
-  const backendUrl = (storage.backend_url || 'http://localhost:8000').replace(/\/$/, '');
+  const storage = await chrome.storage.local.get(['access_token', 'refresh_token']);
   let token = storage.access_token;
 
-  let resp = await fetchWithAuth(backendUrl + endpoint, method, body, token);
+  let resp = await fetchWithAuth(BACKEND_URL + endpoint, method, body, token);
 
-  if (resp.status === 401 && storage.refresh_token && storage.supabase_url) {
-    const newToken = await refreshToken(storage.supabase_url, storage.refresh_token);
+  if (resp.status === 401 && storage.refresh_token) {
+    const newToken = await refreshToken(storage.refresh_token);
     if (newToken) {
       token = newToken;
-      resp = await fetchWithAuth(backendUrl + endpoint, method, body, token);
+      resp = await fetchWithAuth(BACKEND_URL + endpoint, method, body, token);
     } else {
       throw new Error('Session expired. Please log in again in extension settings.');
     }
@@ -58,13 +96,16 @@ async function fetchWithAuth(url, method, body, token) {
   });
 }
 
-async function refreshToken(supabaseUrl, refreshToken) {
+async function refreshToken(refreshToken) {
   try {
     const resp = await fetch(
-      `${supabaseUrl}/auth/v1/token?grant_type=refresh_token`,
+      `${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+        },
         body: JSON.stringify({ refresh_token: refreshToken }),
       }
     );

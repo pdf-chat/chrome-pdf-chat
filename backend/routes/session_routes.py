@@ -1,10 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from auth import get_current_user
 from chunker import chunk_pages
 import session as session_store
 import retriever
 import llm
+
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/session")
 
@@ -36,7 +40,8 @@ async def upload(req: UploadRequest, user_id: str = Depends(get_current_user)):
     return UploadResponse(session_id=session_id)
 
 @router.post("/query", response_model=QueryResponse)
-async def query(req: QueryRequest, user_id: str = Depends(get_current_user)):
+@limiter.limit("20/hour")
+async def query(request: Request, req: QueryRequest, user_id: str = Depends(get_current_user)):
     try:
         sess = session_store.get_session(req.session_id, user_id)
     except KeyError:

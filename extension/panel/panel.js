@@ -4,20 +4,20 @@ const inputEl = document.getElementById('pdf-chat-input');
 const sendBtn = document.getElementById('pdf-chat-send');
 const toggleBtn = document.getElementById('pdf-chat-toggle');
 const panelEl = document.getElementById('pdf-chat-panel');
-const headerEl = document.getElementById('pdf-chat-header');
-
 let sessionId = null;
+let pdfPages = [];
 
 // Receive state from content script
 window.addEventListener('message', (e) => {
   const d = e.data;
   if (d.type === 'SET_STATUS') { statusEl.textContent = d.msg; statusEl.className = d.cls || ''; }
   if (d.type === 'SET_ERROR')  { statusEl.textContent = '⚠ ' + d.msg; statusEl.className = 'error'; }
-  if (d.type === 'SET_READY')  { setReady(d.sessionId); }
+  if (d.type === 'SET_READY')  { setReady(d.sessionId, d.pages); }
 });
 
-function setReady(sid) {
+function setReady(sid, pages) {
   sessionId = sid;
+  pdfPages = pages || [];
   statusEl.textContent = '✓ Ready — ask a question';
   statusEl.className = 'ready';
   inputEl.disabled = false;
@@ -25,18 +25,32 @@ function setReady(sid) {
   inputEl.focus();
 }
 
+function getQuoteContext(pageNum, quote) {
+  const page = pdfPages.find(p => p.page === pageNum);
+  if (!page || !quote) return null;
+  const text = page.text;
+  let idx = text.indexOf(quote);
+  if (idx === -1) {
+    // Fallback: match on first 4 words in case of minor LLM rewording
+    const probe = quote.trim().split(/\s+/).slice(0, 4).join(' ');
+    idx = text.indexOf(probe);
+  }
+  if (idx === -1) return null;
+  const W = 120;
+  const start = Math.max(0, idx - W);
+  const end = Math.min(text.length, idx + quote.length + W);
+  return {
+    before: (start > 0 ? '…' : '') + text.slice(start, idx),
+    match: text.slice(idx, idx + quote.length),
+    after: text.slice(idx + quote.length, end) + (end < text.length ? '…' : ''),
+  };
+}
+
 // Collapse / expand — tell content script to resize the iframe
 toggleBtn.addEventListener('click', () => {
   const collapsed = panelEl.classList.toggle('collapsed');
   toggleBtn.textContent = collapsed ? '+' : '−';
-  window.parent.postMessage({ type: 'TOGGLE_COLLAPSE', collapsed }, '*');
-});
-
-// Drag — send mousedown position to content script, which tracks the mouse
-headerEl.addEventListener('mousedown', (e) => {
-  if (e.target === toggleBtn) return;
-  window.parent.postMessage({ type: 'DRAG_START', offsetX: e.clientX, offsetY: e.clientY }, '*');
-  e.preventDefault();
+  window.parent.postMessage({ type: 'TOGGLE_COLLAPSE', collapsed }, chrome.runtime.getURL('/'));
 });
 
 // Send message
@@ -97,10 +111,25 @@ function appendMessage(role, text, cls, citations) {
       badge.textContent = 'p.' + c.page;
       const quoteEl = document.createElement('div');
       quoteEl.className = 'citation-quote';
-      quoteEl.textContent = c.quote || '(no quote provided)';
+      const ctx = getQuoteContext(c.page, c.quote);
+      if (ctx) {
+        const before = document.createElement('span');
+        before.className = 'citation-context';
+        before.textContent = ctx.before;
+        const mark = document.createElement('mark');
+        mark.className = 'citation-highlight';
+        mark.textContent = ctx.match;
+        const after = document.createElement('span');
+        after.className = 'citation-context';
+        after.textContent = ctx.after;
+        quoteEl.append(before, mark, after);
+      } else {
+        quoteEl.textContent = c.quote || '(no quote provided)';
+      }
       badge.addEventListener('click', () => {
         const showing = badge.classList.toggle('active');
         quoteEl.classList.toggle('open', showing);
+        window.parent.postMessage({ type: 'SCROLL_TO_PAGE', page: c.page }, chrome.runtime.getURL('/'));
       });
       badges.appendChild(badge);
       msg.appendChild(quoteEl);
