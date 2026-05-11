@@ -1,12 +1,11 @@
 import asyncio
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from limiter import limiter
 from dotenv import load_dotenv
 import session as session_store
 from routes.session_routes import router as session_router
@@ -19,8 +18,6 @@ load_dotenv()
 # Example: EXTENSION_ID=abcdefghijklmnopqrstuvwxyzabcdef
 _extension_id = os.getenv("EXTENSION_ID", "")
 ALLOWED_ORIGINS = [f"chrome-extension://{_extension_id}"] if _extension_id else []
-
-limiter = Limiter(key_func=get_remote_address)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

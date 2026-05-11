@@ -1,14 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 from auth import get_current_user
 from chunker import chunk_pages
+from limiter import limiter
 import session as session_store
 import retriever
 import llm
-
-limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/session")
 
