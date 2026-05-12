@@ -1,5 +1,3 @@
-// TODO: Replace with your Supabase publishable key.
-// Find it in: Supabase dashboard → Settings → API → Publishable key (sb_publishable_...)
 const SUPABASE_URL = 'https://wbhintapmmtbbzedawsr.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_xhQsh8XWuPbrkjSYTcP-og_JT0zhwMp';
 
@@ -9,8 +7,7 @@ const client = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 const statusEl = document.getElementById('status');
 const authView = document.getElementById('auth-view');
 const signedInView = document.getElementById('signed-in-view');
-const signedInEmail = document.getElementById('signed-in-email');
-let isSignUp = false;
+const signedInEmailEl = document.getElementById('signed-in-email');
 
 function showStatus(msg, isError) {
   statusEl.textContent = msg;
@@ -20,12 +17,11 @@ function showStatus(msg, isError) {
 async function refreshSignedInState() {
   const { access_token } = await chrome.storage.local.get('access_token');
   if (access_token) {
-    // Decode email from JWT payload (no verification needed here — display only)
     try {
       const payload = JSON.parse(atob(access_token.split('.')[1]));
-      signedInEmail.textContent = '✓ Signed in as ' + (payload.email || payload.sub);
+      signedInEmailEl.textContent = '✓ ' + (payload.email || 'Signed in');
     } catch {
-      signedInEmail.textContent = '✓ Signed in';
+      signedInEmailEl.textContent = '✓ Signed in';
     }
     signedInView.style.display = '';
     authView.style.display = 'none';
@@ -41,52 +37,55 @@ chrome.storage.local.get('model').then(({ model }) => {
 
 refreshSignedInState();
 
-document.getElementById('tab-signin').addEventListener('click', () => {
-  isSignUp = false;
-  document.getElementById('tab-signin').classList.add('active');
-  document.getElementById('tab-signup').classList.remove('active');
-  document.getElementById('auth-btn').textContent = 'Sign In';
-  document.getElementById('password').autocomplete = 'current-password';
-});
+document.getElementById('google-btn').addEventListener('click', async () => {
+  showStatus('Opening Google sign-in...');
 
-document.getElementById('tab-signup').addEventListener('click', () => {
-  isSignUp = true;
-  document.getElementById('tab-signup').classList.add('active');
-  document.getElementById('tab-signin').classList.remove('active');
-  document.getElementById('auth-btn').textContent = 'Create Account';
-  document.getElementById('password').autocomplete = 'new-password';
-});
+  const manifest = chrome.runtime.getManifest();
+  const redirectUri = `https://${chrome.runtime.id}.chromiumapp.org`;
 
-document.getElementById('auth-btn').addEventListener('click', async () => {
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
-  if (!email || !password) { showStatus('Enter email and password.', true); return; }
+  const authUrl = new URL('https://accounts.google.com/o/oauth2/auth');
+  authUrl.searchParams.set('client_id', manifest.oauth2.client_id);
+  authUrl.searchParams.set('response_type', 'id_token');
+  authUrl.searchParams.set('redirect_uri', redirectUri);
+  authUrl.searchParams.set('scope', manifest.oauth2.scopes.join(' '));
+  authUrl.searchParams.set('nonce', crypto.randomUUID());
 
-  showStatus(isSignUp ? 'Creating account...' : 'Signing in...');
-  try {
-    let data, error;
-    if (isSignUp) {
-      ({ data, error } = await client.auth.signUp({ email, password }));
-      if (!error && data.user && !data.session) {
-        showStatus('Check your email to confirm your account, then sign in.', false);
+  chrome.identity.launchWebAuthFlow(
+    { url: authUrl.href, interactive: true },
+    async (redirectedTo) => {
+      if (chrome.runtime.lastError || !redirectedTo) {
+        showStatus('Sign-in cancelled or failed.', true);
         return;
       }
-    } else {
-      ({ data, error } = await client.auth.signInWithPassword({ email, password }));
+      try {
+        // Google returns tokens in the URL fragment after the redirect
+        const hash = new URL(redirectedTo).hash.slice(1);
+        const params = new URLSearchParams(hash);
+        const idToken = params.get('id_token');
+        if (!idToken) throw new Error('No ID token returned from Google.');
+
+        showStatus('Signing in...');
+        const { data, error } = await client.auth.signInWithIdToken({
+          provider: 'google',
+          token: idToken,
+        });
+        if (error) throw error;
+
+        await chrome.storage.local.set({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+        showStatus('');
+        refreshSignedInState();
+      } catch (err) {
+        showStatus('Error: ' + err.message, true);
+      }
     }
-    if (error) throw error;
-    await chrome.storage.local.set({
-      access_token: data.session.access_token,
-      refresh_token: data.session.refresh_token,
-    });
-    showStatus('');
-    refreshSignedInState();
-  } catch (err) {
-    showStatus('Error: ' + err.message, true);
-  }
+  );
 });
 
 document.getElementById('logout-btn').addEventListener('click', async () => {
+  await client.auth.signOut().catch(() => {});
   await chrome.storage.local.remove(['access_token', 'refresh_token']);
   showStatus('Signed out.');
   refreshSignedInState();

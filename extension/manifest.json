@@ -3,7 +3,11 @@
   "name": "PDF Chat",
   "version": "1.0.0",
   "description": "Ask questions about any PDF open in your browser",
-  "permissions": ["storage", "activeTab", "webRequest"],
+  "permissions": ["storage", "activeTab", "webRequest", "identity"],
+  "oauth2": {
+    "client_id": "TODO_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
+    "scopes": ["openid", "email", "profile"]
+  },
   "host_permissions": ["http://*/*", "https://*/*", "file:///*"],
   "background": {
     "service_worker": "service_worker.js"
