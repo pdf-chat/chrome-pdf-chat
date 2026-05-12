@@ -41,7 +41,7 @@ document.getElementById('google-btn').addEventListener('click', async () => {
   showStatus('Opening Google sign-in...');
 
   const manifest = chrome.runtime.getManifest();
-  const redirectUri = `https://${chrome.runtime.id}.chromiumapp.org`;
+  const redirectUri = `https://${chrome.runtime.id}.chromiumapp.org/`;
   const nonce = crypto.randomUUID();
 
   const authUrl = new URL('https://accounts.google.com/o/oauth2/auth');
