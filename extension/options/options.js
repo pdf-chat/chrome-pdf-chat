@@ -40,35 +40,45 @@ refreshSignedInState();
 document.getElementById('google-btn').addEventListener('click', async () => {
   showStatus('Opening Google sign-in...');
 
-  const redirectTo = `https://${chrome.runtime.id}.chromiumapp.org`;
+  const manifest = chrome.runtime.getManifest();
+  const redirectUri = `https://${chrome.runtime.id}.chromiumapp.org`;
+  const nonce = crypto.randomUUID();
 
-  // Get the Supabase-managed OAuth URL — Supabase handles talking to Google,
-  // so we never hit Google's deprecated implicit flow directly.
-  const { data, error: urlError } = await client.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo, skipBrowserRedirect: true },
-  });
-  if (urlError || !data?.url) {
-    showStatus('Error: ' + (urlError?.message || 'Could not get auth URL.'), true);
-    return;
-  }
+  const authUrl = new URL('https://accounts.google.com/o/oauth2/auth');
+  authUrl.searchParams.set('client_id', manifest.oauth2.client_id);
+  authUrl.searchParams.set('response_type', 'id_token');
+  authUrl.searchParams.set('redirect_uri', redirectUri);
+  authUrl.searchParams.set('scope', manifest.oauth2.scopes.join(' '));
+  authUrl.searchParams.set('nonce', nonce);
+
+  console.log('Extension ID:', chrome.runtime.id);
+  console.log('Redirect URI (must match Google Cloud Console exactly):', redirectUri);
 
   chrome.identity.launchWebAuthFlow(
-    { url: data.url, interactive: true },
+    { url: authUrl.href, interactive: true },
     async (redirectedTo) => {
       if (chrome.runtime.lastError || !redirectedTo) {
         showStatus('Error: ' + (chrome.runtime.lastError?.message || 'No response.'), true);
         return;
       }
       try {
-        // Supabase returns the session in the URL fragment: #access_token=...&refresh_token=...
         const hash = new URL(redirectedTo).hash.slice(1);
         const params = new URLSearchParams(hash);
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
-        if (!accessToken) throw new Error('No access token in callback URL.');
+        const idToken = params.get('id_token');
+        if (!idToken) throw new Error('No ID token in callback URL.');
 
-        await chrome.storage.local.set({ access_token: accessToken, refresh_token: refreshToken });
+        showStatus('Signing in...');
+        const { data, error } = await client.auth.signInWithIdToken({
+          provider: 'google',
+          token: idToken,
+          nonce,
+        });
+        if (error) throw error;
+
+        await chrome.storage.local.set({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
         showStatus('');
         refreshSignedInState();
       } catch (err) {
