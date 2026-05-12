@@ -37,22 +37,27 @@ chrome.storage.local.get('model').then(({ model }) => {
 
 refreshSignedInState();
 
+// Web Application OAuth client ID (created in Google Cloud Console → Web application type).
+// The Chrome Extension client type in manifest.json is for chrome.identity.getAuthToken only.
+const GOOGLE_WEB_CLIENT_ID = '51684954923-7moq37e4fff9hpc23i0d8ooqv8q7ffm6.apps.googleusercontent.com';
+
 document.getElementById('google-btn').addEventListener('click', async () => {
   showStatus('Opening Google sign-in...');
 
-  const manifest = chrome.runtime.getManifest();
-  const redirectUri = `https://${chrome.runtime.id}.chromiumapp.org/`;
+  const redirectUri = `https://${chrome.runtime.id}.chromiumapp.org`;
   const nonce = crypto.randomUUID();
+  const nonceBytes = new TextEncoder().encode(nonce);
+  const nonceHash = await crypto.subtle.digest('SHA-256', nonceBytes);
+  const hashedNonce = Array.from(new Uint8Array(nonceHash))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 
   const authUrl = new URL('https://accounts.google.com/o/oauth2/auth');
-  authUrl.searchParams.set('client_id', manifest.oauth2.client_id);
+  authUrl.searchParams.set('client_id', GOOGLE_WEB_CLIENT_ID);
   authUrl.searchParams.set('response_type', 'id_token');
   authUrl.searchParams.set('redirect_uri', redirectUri);
-  authUrl.searchParams.set('scope', manifest.oauth2.scopes.join(' '));
-  authUrl.searchParams.set('nonce', nonce);
-
-  console.log('Extension ID:', chrome.runtime.id);
-  console.log('Redirect URI (must match Google Cloud Console exactly):', redirectUri);
+  authUrl.searchParams.set('scope', 'openid email profile');
+  authUrl.searchParams.set('nonce', hashedNonce);
 
   chrome.identity.launchWebAuthFlow(
     { url: authUrl.href, interactive: true },
