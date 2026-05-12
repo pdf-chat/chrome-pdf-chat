@@ -5,7 +5,7 @@
   "description": "Ask questions about any PDF open in your browser",
   "permissions": ["storage", "activeTab", "webRequest", "identity"],
   "oauth2": {
-    "client_id": "TODO_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
+    "client_id": "51684954923-v4s0jo2j17bv895sgrbim178ddfatqjo.apps.googleusercontent.com",
     "scopes": ["openid", "email", "profile"]
   },
   "host_permissions": ["http://*/*", "https://*/*", "file:///*"],
