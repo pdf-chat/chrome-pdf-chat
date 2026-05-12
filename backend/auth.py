@@ -11,7 +11,7 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ) -> str:
     token = credentials.credentials
-    supabase_url = os.environ["SUPABASE_URL"].rstrip("/")
+    supabase_url = os.environ["SUPABASE_URL"].strip().rstrip("/")
     supabase_key = os.environ["SUPABASE_PUBLISHABLE_KEY"]
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
