@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(C:/Users/ARCLP/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.7/skills/brainstorming/scripts/start-server.sh:*)",
+      "Bash(git init *)",
+      "Bash(python -m venv venv)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git -C \"C:/Users/ARCLP/Documents/Code/chrome-pdf-chat\" log --oneline)",
+      "Bash(git *)",
+      "Bash(C:/Users/ARCLP/Documents/Code/chrome-pdf-chat/backend/venv/Scripts/pip.exe list *)",
+      "Bash(C:/Users/ARCLP/Documents/Code/chrome-pdf-chat/backend/venv/Scripts/pip.exe check *)",
+      "Bash(python -m pytest tests/test_session.py -v)",
+      "Bash(python -m pytest tests/test_auth.py -v)",
+      "Bash(python -m pip install python-jose[cryptography])",
+      "Bash(python -m pytest tests/test_llm.py -v)",
+      "Bash(C:/ProgramData/anaconda3/python.exe *)",
+      "Bash(python -m pytest tests/ -v)",
+      "Bash(python -m pip install rank-bm25)",
+      "PowerShell(cd \"C:/Users/ARCLP/Documents/Code/chrome-pdf-chat/extension/lib\"; Invoke-WebRequest -Uri \"https://github.com/mozilla/pdf.js/releases/download/v4.9.155/pdfjs-4.9.155-dist.zip\" -OutFile pdfjs.zip; Write-Host \"Download complete, size: $\\(\\(Get-Item pdfjs.zip\\).Length\\) bytes\")",
+      "PowerShell(Expand-Archive *)",
+      "PowerShell(cd \"C:/Users/ARCLP/Documents/Code/chrome-pdf-chat/extension/lib\"; Invoke-WebRequest -Uri \"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js\" -OutFile supabase.js; Write-Host \"supabase.js size: $\\(\\(Get-Item supabase.js\\).Length\\) bytes\")",
+      "Bash(python -m uvicorn --version)",
+      "Bash(curl -L \"https://github.com/mozilla/pdf.js/releases/download/v3.11.174/pdfjs-3.11.174-dist.zip\" -o pdfjs.zip)",
+      "Bash(unzip -o pdfjs.zip \"build/pdf.js\" \"build/pdf.worker.js\")",
+      "Bash(mv build/pdf.js pdf.js)",
+      "Bash(mv build/pdf.worker.js pdf.worker.js)",
+      "Bash(rm -rf build pdfjs.zip)",
+      "WebFetch(domain:supabase.com)",
+      "mcp__supabase__search_docs",
+      "mcp__supabase__list_projects",
+      "mcp__supabase__get_project_url",
+      "Bash(pip install *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\ARCLP\\\\Documents\\\\Code\\\\chrome-pdf-chat\" -Recurse -File)",
+      "Bash(Select-Object FullName)",
+      "Bash(gh auth *)",
+      "Bash(gh repo *)",
+      "Bash(gh run *)",
+      "Bash(gh issue *)"
+    ]
+  }
+}

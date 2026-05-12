@@ -18,7 +18,6 @@ class UploadResponse(BaseModel):
 class QueryRequest(BaseModel):
     session_id: str
     question: str
-    model: str
 
 class Citation(BaseModel):
     page: int
@@ -50,5 +49,5 @@ async def query(request: Request, req: QueryRequest, user_id: str = Depends(get_
         top_chunks = sess.chunks
     if not top_chunks:
         return QueryResponse(answer="I couldn't find that in this document.", citations=[])
-    result = llm.ask(req.question, top_chunks, req.model)
+    result = llm.ask(req.question, top_chunks)
     return QueryResponse(**result)

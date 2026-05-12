@@ -64,13 +64,11 @@ async function doSend() {
   inputEl.disabled = true;
   const loadingEl = appendMessage('assistant', 'Thinking...', 'loading');
   try {
-    const { model } = await chrome.storage.local.get('model');
     const result = await new Promise((resolve, reject) => {
       chrome.runtime.sendMessage(
         { type: 'API_REQUEST', endpoint: '/session/query', method: 'POST', body: {
           session_id: sessionId,
           question,
-          model: model || 'gpt-4o',
         }},
         (response) => {
           if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));

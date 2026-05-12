@@ -9,7 +9,9 @@ If the answer is not in the context, respond with:
 {"answer": "I couldn't find that in this document.", "citations": []}
 Do not include any text outside the JSON object."""
 
-def ask(question: str, chunks: list[dict], model: str) -> dict:
+MODEL = "gemini/gemini-2.5-flash"
+
+def ask(question: str, chunks: list[dict], model: str = MODEL) -> dict:
     context = "\n\n".join(f"[Page {c['page']}] {c['text']}" for c in chunks)
     response = litellm.completion(
         model=model,

@@ -31,10 +31,6 @@ async function refreshSignedInState() {
   }
 }
 
-chrome.storage.local.get('model').then(({ model }) => {
-  if (model) document.getElementById('model').value = model;
-});
-
 refreshSignedInState();
 
 // Web Application OAuth client ID (created in Google Cloud Console → Web application type).
@@ -98,10 +94,4 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
   await chrome.storage.local.remove(['access_token', 'refresh_token']);
   showStatus('Signed out.');
   refreshSignedInState();
-});
-
-document.getElementById('save-btn').addEventListener('click', async () => {
-  const model = document.getElementById('model').value;
-  await chrome.storage.local.set({ model });
-  showStatus('✓ Saved.');
 });
