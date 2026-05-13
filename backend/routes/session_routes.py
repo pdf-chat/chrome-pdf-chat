@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from auth import get_current_user
 from chunker import chunk_pages
 from limiter import limiter
@@ -9,31 +9,44 @@ import llm
 
 router = APIRouter(prefix="/session")
 
+
+class PageItem(BaseModel):
+    page: int
+    text: str = Field(max_length=50_000)
+
+
 class UploadRequest(BaseModel):
-    pages: list[dict]
+    pages: list[PageItem] = Field(max_length=500)
+
 
 class UploadResponse(BaseModel):
     session_id: str
 
+
 class QueryRequest(BaseModel):
     session_id: str
-    question: str
+    question: str = Field(min_length=1, max_length=2000)
+
 
 class Citation(BaseModel):
     page: int
     quote: str
 
+
 class QueryResponse(BaseModel):
     answer: str
     citations: list[Citation]
 
+
 @router.post("/upload", response_model=UploadResponse)
-async def upload(req: UploadRequest, user_id: str = Depends(get_current_user)):
-    chunks = chunk_pages(req.pages)
+@limiter.limit("10/hour")
+async def upload(request: Request, req: UploadRequest, user_id: str = Depends(get_current_user)):
+    chunks = chunk_pages([p.model_dump() for p in req.pages])
     if not chunks:
         raise HTTPException(status_code=422, detail="No text could be extracted from the provided pages")
     session_id = session_store.create_session(chunks, user_id)
     return UploadResponse(session_id=session_id)
+
 
 @router.post("/query", response_model=QueryResponse)
 @limiter.limit("20/hour")

@@ -1,13 +1,14 @@
 import os
 import logging
 import httpx
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 logger = logging.getLogger(__name__)
 bearer_scheme = HTTPBearer()
 
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ) -> str:
     token = credentials.credentials
@@ -25,6 +26,7 @@ async def get_current_user(
         user_id: str = resp.json().get("id")
         if not user_id:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        request.state.user_id = user_id  # used by per-user rate limiter
         return user_id
     except HTTPException:
         raise

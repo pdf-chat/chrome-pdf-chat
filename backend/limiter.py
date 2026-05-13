@@ -1,4 +1,10 @@
 from slowapi import Limiter
-from slowapi.util import get_remote_address
+from fastapi import Request
 
-limiter = Limiter(key_func=get_remote_address)
+
+def _get_user_id(request: Request) -> str:
+    # user_id is set on request.state by get_current_user dependency
+    return getattr(request.state, "user_id", request.client.host if request.client else "unknown")
+
+
+limiter = Limiter(key_func=_get_user_id)

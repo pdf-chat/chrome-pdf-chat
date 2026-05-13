@@ -9,7 +9,6 @@ from limiter import limiter
 from dotenv import load_dotenv
 import session as session_store
 from routes.session_routes import router as session_router
-from routes.auth_routes import router as auth_router
 
 load_dotenv()
 
@@ -17,6 +16,9 @@ load_dotenv()
 # Find it at chrome://extensions after loading the extension.
 # Example: EXTENSION_ID=abcdefghijklmnopqrstuvwxyzabcdef
 _extension_id = os.getenv("EXTENSION_ID", "")
+if not _extension_id:
+    import sys
+    print("WARNING: EXTENSION_ID env var is not set — CORS will block all extension requests.", file=sys.stderr)
 ALLOWED_ORIGINS = [f"chrome-extension://{_extension_id}"] if _extension_id else []
 
 @asynccontextmanager
@@ -42,7 +44,6 @@ app.add_middleware(
 )
 
 app.include_router(session_router)
-app.include_router(auth_router)
 
 @app.get("/health")
 def health():

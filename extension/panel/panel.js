@@ -9,6 +9,7 @@ let pdfPages = [];
 
 // Receive state from content script
 window.addEventListener('message', (e) => {
+  if (e.source !== window.parent) return;
   const d = e.data;
   if (d.type === 'SET_STATUS') { statusEl.textContent = d.msg; statusEl.className = d.cls || ''; }
   if (d.type === 'SET_ERROR')  { statusEl.textContent = '⚠ ' + d.msg; statusEl.className = 'error'; }
