@@ -51,7 +51,7 @@ function getQuoteContext(pageNum, quote) {
 toggleBtn.addEventListener('click', () => {
   const collapsed = panelEl.classList.toggle('collapsed');
   toggleBtn.textContent = collapsed ? '+' : '−';
-  window.parent.postMessage({ type: 'TOGGLE_COLLAPSE', collapsed }, chrome.runtime.getURL('/'));
+  window.parent.postMessage({ type: 'TOGGLE_COLLAPSE', collapsed }, '*');
 });
 
 // Send message
@@ -128,7 +128,7 @@ function appendMessage(role, text, cls, citations) {
       badge.addEventListener('click', () => {
         const showing = badge.classList.toggle('active');
         quoteEl.classList.toggle('open', showing);
-        window.parent.postMessage({ type: 'SCROLL_TO_PAGE', page: c.page }, chrome.runtime.getURL('/'));
+        window.parent.postMessage({ type: 'SCROLL_TO_PAGE', page: c.page }, '*');
       });
       badges.appendChild(badge);
       msg.appendChild(quoteEl);
