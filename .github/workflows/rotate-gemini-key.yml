@@ -24,14 +24,17 @@ jobs:
       - name: Create new Gemini API key
         id: new_key
         run: |
-          KEY_DATA=$(gcloud api-keys create \
+          # Create key — gcloud waits for the operation to complete
+          KEY_NAME=$(gcloud services api-keys create \
             --project="${{ secrets.GCP_PROJECT_ID }}" \
             --display-name="pdf-chat-gemini-$(date +%Y-%m)" \
             --api-target=service=generativelanguage.googleapis.com \
-            --format=json)
+            --format="value(name)")
 
-          KEY_STRING=$(echo "$KEY_DATA" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['keyString'])")
-          KEY_NAME=$(echo "$KEY_DATA" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['name'])")
+          # Fetch the actual key string from the created key resource
+          KEY_STRING=$(gcloud services api-keys get-key-string "$KEY_NAME" \
+            --project="${{ secrets.GCP_PROJECT_ID }}" \
+            --format="value(keyString)")
 
           echo "key_string=$KEY_STRING" >> $GITHUB_OUTPUT
           echo "key_name=$KEY_NAME" >> $GITHUB_OUTPUT
@@ -66,16 +69,16 @@ jobs:
 
       - name: Delete old pdf-chat Gemini API keys
         run: |
-          # Find all keys with our display-name prefix except the one we just created
           NEW_KEY_NAME="${{ steps.new_key.outputs.key_name }}"
 
-          gcloud api-keys list \
+          gcloud services api-keys list \
             --project="${{ secrets.GCP_PROJECT_ID }}" \
             --filter="displayName:pdf-chat-gemini-*" \
             --format="value(name)" | while read -r key; do
             if [ "$key" != "$NEW_KEY_NAME" ]; then
               echo "Deleting old key: $key"
-              gcloud api-keys delete "$key" --project="${{ secrets.GCP_PROJECT_ID }}" --quiet
+              gcloud services api-keys delete "$key" \
+                --project="${{ secrets.GCP_PROJECT_ID }}" --quiet
             fi
           done
 
