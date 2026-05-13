@@ -36,7 +36,13 @@
       "Bash(gh auth *)",
       "Bash(gh repo *)",
       "Bash(gh run *)",
-      "Bash(gh issue *)"
+      "Bash(gh issue *)",
+      "Bash(cat backend/render.yaml)",
+      "Bash(cat render.yaml)",
+      "Bash(pip-audit -r backend/requirements.txt --format=json)",
+      "Bash(python -m pip_audit -r backend/requirements.txt)",
+      "Bash(python -c ' *)",
+      "Bash(gh secret *)"
     ]
   }
 }

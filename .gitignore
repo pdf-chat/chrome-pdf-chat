@@ -9,3 +9,4 @@ venv/
 extension/lib/pdf.js
 extension/lib/pdf.worker.js
 extension/lib/supabase.js
+.claude/
