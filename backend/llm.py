@@ -1,5 +1,6 @@
 import json
 import litellm
+from secrets import get_secret
 
 SYSTEM_PROMPT = """You are a PDF assistant. Answer the user's question using ONLY the context passages below.
 Respond with valid JSON in this exact format:
@@ -15,6 +16,7 @@ def ask(question: str, chunks: list[dict], model: str = MODEL) -> dict:
     context = "\n\n".join(f"[Page {c['page']}] {c['text']}" for c in chunks)
     response = litellm.completion(
         model=model,
+        api_key=get_secret("gemini-api-key"),
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}"},
