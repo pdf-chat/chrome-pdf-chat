@@ -21,7 +21,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["lib/pdf.worker.js"],
+      "resources": ["lib/pdf.worker.js", "panel/panel.html", "panel/panel.css", "panel/panel.js"],
       "matches": ["http://*/*", "https://*/*", "file:///*"]
     }
   ]
