@@ -24,7 +24,6 @@ jobs:
       - name: Create new Gemini API key
         id: new_key
         run: |
-          # create waits for the LRO to finish; response.name is the key resource name
           KEY_NAME=$(gcloud services api-keys create \
             --project="${{ secrets.GCP_PROJECT_ID }}" \
             --display-name="pdf-chat-gemini-$(date +%Y-%m)" \
@@ -33,15 +32,24 @@ jobs:
 
           echo "Key resource: $KEY_NAME"
 
-          # get-key-string takes the full resource name
           KEY_STRING=$(gcloud services api-keys get-key-string "$KEY_NAME" \
             --format="value(keyString)")
+
+          # Mask the key so it never appears in any subsequent log line
+          echo "::add-mask::$KEY_STRING"
 
           echo "key_string=$KEY_STRING" >> $GITHUB_OUTPUT
           echo "key_name=$KEY_NAME" >> $GITHUB_OUTPUT
 
       - name: Push new key version to Secret Manager
         run: |
+          # Create the secret if this is the first rotation
+          gcloud secrets describe gemini-api-key \
+            --project="${{ secrets.GCP_PROJECT_ID }}" > /dev/null 2>&1 || \
+          gcloud secrets create gemini-api-key \
+            --project="${{ secrets.GCP_PROJECT_ID }}" \
+            --replication-policy=automatic
+
           echo -n "${{ steps.new_key.outputs.key_string }}" | \
             gcloud secrets versions add gemini-api-key \
               --project="${{ secrets.GCP_PROJECT_ID }}" \
