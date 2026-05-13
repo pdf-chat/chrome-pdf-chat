@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PDF Chat — Ask questions about any PDF</title>
+  <meta name="description" content="PDF Chat is a Chrome extension that lets you ask questions about any PDF you're viewing — powered by AI.">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #1e1e2e; --surface: #313244; --border: #45475a;
+      --text: #cdd6f4; --subtext: #a6adc8; --accent: #cba6f7;
+      --green: #a6e3a1; --red: #f38ba8;
+    }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; line-height: 1.6; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header {
+      max-width: 760px; margin: 0 auto; padding: 64px 24px 48px;
+      text-align: center;
+    }
+    header h1 { font-size: 2.4rem; color: var(--accent); margin-bottom: 12px; }
+    header p { font-size: 1.15rem; color: var(--subtext); max-width: 520px; margin: 0 auto 32px; }
+    .cta {
+      display: inline-block; background: var(--accent); color: var(--bg);
+      font-weight: 700; padding: 12px 28px; border-radius: 10px; font-size: 1rem;
+    }
+    .cta:hover { background: #b4befe; text-decoration: none; }
+
+    section { max-width: 760px; margin: 0 auto; padding: 0 24px 64px; }
+    h2 { font-size: 1.3rem; color: var(--accent); margin-bottom: 20px; }
+
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
+    .feature {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px;
+    }
+    .feature .icon { font-size: 1.6rem; margin-bottom: 10px; }
+    .feature h3 { font-size: 1rem; margin-bottom: 6px; }
+    .feature p { font-size: 0.875rem; color: var(--subtext); }
+
+    .steps { counter-reset: step; display: flex; flex-direction: column; gap: 16px; }
+    .step {
+      display: flex; gap: 16px; align-items: flex-start;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;
+    }
+    .step::before {
+      counter-increment: step; content: counter(step);
+      min-width: 32px; height: 32px; border-radius: 50%;
+      background: var(--accent); color: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.9rem; flex-shrink: 0;
+    }
+    .step p { color: var(--subtext); font-size: 0.95rem; margin-top: 2px; }
+    .step strong { display: block; margin-bottom: 4px; }
+
+    footer {
+      border-top: 1px solid var(--border); text-align: center;
+      padding: 24px; font-size: 0.85rem; color: var(--subtext);
+    }
+    footer a { margin: 0 10px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>PDF Chat</h1>
+  <p>Ask questions about any PDF you're viewing in Chrome — get instant, cited answers powered by AI.</p>
+  <a class="cta" href="https://chrome.google.com/webstore" target="_blank" rel="noopener">
+    Add to Chrome — it's free
+  </a>
+</header>
+
+<section>
+  <h2>What it does</h2>
+  <div class="features">
+    <div class="feature">
+      <div class="icon">💬</div>
+      <h3>Ask anything</h3>
+      <p>Type a question about any PDF and get a direct answer — no scrolling, no searching.</p>
+    </div>
+    <div class="feature">
+      <div class="icon">📌</div>
+      <h3>Cited answers</h3>
+      <p>Every answer links back to the exact page and quote it came from.</p>
+    </div>
+    <div class="feature">
+      <div class="icon">🔒</div>
+      <h3>Secure sign-in</h3>
+      <p>Sign in with your Google account — no passwords, no extra accounts.</p>
+    </div>
+    <div class="feature">
+      <div class="icon">📄</div>
+      <h3>Works anywhere</h3>
+      <p>PDFs on websites, behind logins, or saved locally on your computer.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>How it works</h2>
+  <div class="steps">
+    <div class="step">
+      <div>
+        <strong>Install the extension</strong>
+        <p>Add PDF Chat to Chrome from the Web Store — one click, no configuration.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div>
+        <strong>Sign in with Google</strong>
+        <p>Open the extension settings and sign in. Your account keeps your sessions secure.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div>
+        <strong>Open any PDF</strong>
+        <p>Navigate to a PDF in Chrome. The chat panel appears automatically on the right.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div>
+        <strong>Ask your question</strong>
+        <p>Type a question and get an answer with page citations in seconds.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <a href="privacy.html">Privacy Policy</a>
+  <a href="support.html">Support</a>
+  <span>© 2026 PDF Chat</span>
+</footer>
+
+</body>
+</html>
